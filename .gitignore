@@ -11,3 +11,8 @@ uploads/
 .DS_Store
 *.log
 .omc/
+
+# Environment variables (local only, never commit)
+.env
+.env.local
+.env.*.local
