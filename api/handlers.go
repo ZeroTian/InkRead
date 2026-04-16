@@ -93,6 +93,14 @@ func (h *Handlers) GetBook(c *gin.Context) {
 		return
 	}
 
+	if book.FileType == "epub" {
+		epubBook, err := h.bookService.GetEPUBContent(id)
+		if err == nil {
+			h.success(c, epubBook)
+			return
+		}
+	}
+
 	h.success(c, book)
 }
 

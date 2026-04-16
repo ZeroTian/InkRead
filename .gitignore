@@ -10,3 +10,4 @@ uploads/
 # IDE/OS files
 .DS_Store
 *.log
+.omc/

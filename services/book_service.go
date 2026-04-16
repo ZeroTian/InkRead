@@ -119,3 +119,16 @@ func (s *BookService) GetBookContent(id string) (string, error) {
 
 	return string(data), nil
 }
+
+func (s *BookService) GetEPUBContent(id string) (*EPUBBook, error) {
+	book, err := s.store.GetBook(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if book.FileType != "epub" {
+		return nil, fmt.Errorf("not an epub file")
+	}
+
+	return ParseEPUB(book.FilePath)
+}
