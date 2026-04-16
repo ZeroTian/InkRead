@@ -41,9 +41,20 @@ type openAIResponse struct {
 }
 
 func NewAIService(apiKey, model string) *AIService {
-	baseURL := os.Getenv("OPENAI_BASE_URL")
+	// Support MiniMax (优先) 或 OpenAI 兼容 API
+	baseURL := os.Getenv("MINIMAX_BASE_URL")
 	if baseURL == "" {
-		baseURL = "https://api.openai.com/v1"
+		baseURL = os.Getenv("OPENAI_BASE_URL")
+	}
+	if baseURL == "" {
+		baseURL = "https://api.minimaxi.com/anthropic/v1"
+	}
+	// 如果没传 apiKey，尝试从环境变量读取
+	if apiKey == "" {
+		apiKey = os.Getenv("MINIMAX_API_KEY")
+	}
+	if apiKey == "" {
+		apiKey = os.Getenv("OPENAI_API_KEY")
 	}
 	return &AIService{
 		apiKey:  apiKey,

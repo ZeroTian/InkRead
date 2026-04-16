@@ -44,12 +44,16 @@ func main() {
 
 	bookService := services.NewBookService(store, absUploadDir)
 
-	openAIKey := os.Getenv("OPENAI_API_KEY")
-	openAIModel := os.Getenv("OPENAI_MODEL")
+	// 优先使用 MiniMax API，兼容 OpenAI
+	apiKey := os.Getenv("MINIMAX_API_KEY")
+	openAIModel := os.Getenv("MINIMAX_MODEL")
 	if openAIModel == "" {
-		openAIModel = "gpt-3.5-turbo"
+		openAIModel = os.Getenv("OPENAI_MODEL")
 	}
-	aiService := services.NewAIService(openAIKey, openAIModel)
+	if openAIModel == "" {
+		openAIModel = "MiniMax-Text-01" // MiniMax 默认模型
+	}
+	aiService := services.NewAIService(apiKey, openAIModel)
 
 	handlers := api.NewHandlers(bookService, aiService)
 
@@ -66,7 +70,7 @@ func main() {
 	log.Printf("InkRead 服务启动于 http://localhost:%s", port)
 	log.Printf("上传目录: %s", absUploadDir)
 	log.Printf("数据库: %s", dbPath)
-	if openAIKey != "" {
+	if apiKey != "" {
 		log.Printf("AI 总结: 已启用 (模型: %s)", openAIModel)
 	} else {
 		log.Printf("AI 总结: 模拟模式")
