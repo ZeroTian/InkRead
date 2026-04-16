@@ -1,0 +1,12 @@
+# Binary
+inkread
+
+# Database files
+*.db
+
+# Uploads directory
+uploads/
+
+# IDE/OS files
+.DS_Store
+*.log

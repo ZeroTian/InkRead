@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>InkRead - 阅读器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="reader-container" id="readerContainer">
+        <header class="reader-header" id="readerHeader">
+            <button class="btn-back" id="btnBack">← 返回</button>
+            <h2 class="reader-title" id="readerTitle">书籍标题</h2>
+            <button class="btn-ai-summary" id="btnAiSummary">🤖 AI摘要</button>
+        </header>
+
+        <main class="reader-content" id="readerContent">
+            <!-- 动态加载阅读内容 -->
+        </main>
+
+        <footer class="reader-footer" id="readerFooter">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="page-info" id="pageInfo">第 1 / 10 页</div>
+        </footer>
+
+        <aside class="reader-controls" id="readerControls">
+            <div class="control-section">
+                <label class="control-label">字体大小</label>
+                <div class="control-buttons">
+                    <button class="btn-font" id="fontDecrease">A-</button>
+                    <span class="font-size-display" id="fontSizeDisplay">18px</span>
+                    <button class="btn-font" id="fontIncrease">A+</button>
+                </div>
+            </div>
+            <div class="control-section">
+                <label class="control-label">亮度</label>
+                <input type="range" class="brightness-slider" id="brightnessSlider" min="20" max="100" value="100">
+            </div>
+            <div class="control-section">
+                <button class="btn-theme-reader" id="themeToggleReader">🌓 切换主题</button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- AI摘要弹窗 -->
+    <div class="summary-modal" id="summaryModal">
+        <div class="summary-content">
+            <div class="summary-header">
+                <h3>📝 AI 摘要</h3>
+                <button class="btn-close" id="btnCloseSummary">×</button>
+            </div>
+            <div class="summary-body" id="summaryBody">
+                <div class="summary-loading" id="summaryLoading">
+                    <span class="loading-spinner">⏳</span>
+                    <p>正在生成摘要...</p>
+                </div>
+                <div class="summary-text" id="summaryText"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
