@@ -132,3 +132,17 @@ func (s *BookService) GetEPUBContent(id string) (*EPUBBook, error) {
 
 	return ParseEPUB(book.FilePath)
 }
+
+func (s *BookService) GetReadingProgress(bookID string) (*models.ReadingProgress, error) {
+	return s.store.GetProgress(bookID)
+}
+
+func (s *BookService) SaveReadingProgress(progress *models.ReadingProgress) error {
+	if progress.ID == "" {
+		progress.ID = uuid.New().String()
+	}
+	if progress.UserID == "" {
+		progress.UserID = "default"
+	}
+	return s.store.SaveProgress(progress)
+}

@@ -115,6 +115,48 @@ func (h *Handlers) DeleteBook(c *gin.Context) {
 	h.success(c, gin.H{"deleted": id})
 }
 
+func (h *Handlers) GetProgress(c *gin.Context) {
+	bookID := c.Param("book_id")
+
+	progress, err := h.bookService.GetReadingProgress(bookID)
+	if err != nil {
+		h.error(c, http.StatusNotFound, "未找到阅读进度")
+		return
+	}
+
+	h.success(c, progress)
+}
+
+func (h *Handlers) SaveProgress(c *gin.Context) {
+	bookID := c.Param("book_id")
+
+	var req struct {
+		CurrentChapter int     `json:"current_chapter"`
+		ScrollPosition float64 `json:"scroll_position"`
+		Percentage      float64 `json:"percentage"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.error(c, http.StatusBadRequest, "请求格式错误")
+		return
+	}
+
+	progress := &models.ReadingProgress{
+		BookID:          bookID,
+		UserID:          "default",
+		CurrentChapter: req.CurrentChapter,
+		ScrollPosition:  req.ScrollPosition,
+		Percentage:      req.Percentage,
+	}
+
+	if err := h.bookService.SaveReadingProgress(progress); err != nil {
+		h.error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	h.success(c, progress)
+}
+
 func (h *Handlers) GetBookContent(c *gin.Context) {
 	id := c.Param("id")
 
@@ -171,5 +213,7 @@ func (h *Handlers) RegisterRoutes(r *gin.Engine) {
 		api.DELETE("/books/:id", h.DeleteBook)
 		api.GET("/books/:id/content", h.GetBookContent)
 		api.POST("/ai/summarize", h.SummarizeBook)
+		api.GET("/progress/:book_id", h.GetProgress)
+		api.POST("/progress/:book_id", h.SaveProgress)
 	}
 }

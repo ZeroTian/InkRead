@@ -38,6 +38,17 @@ func (s *SQLiteStore) init() error {
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
+
+	CREATE TABLE IF NOT EXISTS reading_progress (
+		id TEXT PRIMARY KEY,
+		book_id TEXT NOT NULL,
+		user_id TEXT DEFAULT 'default',
+		current_chapter INTEGER DEFAULT 0,
+		scroll_position REAL DEFAULT 0,
+		percentage REAL DEFAULT 0,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		UNIQUE(book_id, user_id)
+	);
 	`
 	_, err := s.db.Exec(query)
 	return err
@@ -114,6 +125,38 @@ func (s *SQLiteStore) UpdateBook(book *models.Book) error {
 	WHERE id = ?
 	`
 	_, err := s.db.Exec(query, book.Title, book.Author, book.UpdatedAt, book.ID)
+	return err
+}
+
+func (s *SQLiteStore) GetProgress(bookID string) (*models.ReadingProgress, error) {
+	query := `
+	SELECT id, book_id, user_id, current_chapter, scroll_position, percentage, updated_at
+	FROM reading_progress WHERE book_id = ? AND user_id = 'default'
+	`
+	row := s.db.QueryRow(query, bookID)
+
+	var progress models.ReadingProgress
+	err := row.Scan(&progress.ID, &progress.BookID, &progress.UserID,
+		&progress.CurrentChapter, &progress.ScrollPosition, &progress.Percentage, &progress.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &progress, nil
+}
+
+func (s *SQLiteStore) SaveProgress(progress *models.ReadingProgress) error {
+	progress.UpdatedAt = time.Now()
+	query := `
+	INSERT INTO reading_progress (id, book_id, user_id, current_chapter, scroll_position, percentage, updated_at)
+	VALUES (?, ?, ?, ?, ?, ?, ?)
+	ON CONFLICT(book_id, user_id) DO UPDATE SET
+		current_chapter = excluded.current_chapter,
+		scroll_position = excluded.scroll_position,
+		percentage = excluded.percentage,
+		updated_at = excluded.updated_at
+	`
+	_, err := s.db.Exec(query, progress.ID, progress.BookID, progress.UserID,
+		progress.CurrentChapter, progress.ScrollPosition, progress.Percentage, progress.UpdatedAt)
 	return err
 }
 
