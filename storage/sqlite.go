@@ -75,6 +75,15 @@ func (s *SQLiteStore) init() error {
 		priority INTEGER DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
+
+	CREATE TABLE IF NOT EXISTS reading_settings (
+		id TEXT PRIMARY KEY,
+		user_id TEXT UNIQUE NOT NULL,
+		font_size INTEGER DEFAULT 18,
+		line_height REAL DEFAULT 1.8,
+		theme TEXT DEFAULT 'light',
+		font TEXT DEFAULT 'Georgia'
+	);
 	`
 	_, err := s.db.Exec(query)
 	return err
@@ -309,6 +318,40 @@ func (s *SQLiteStore) DeleteCleanupRule(id string) error {
 	query := `DELETE FROM cleanup_rules WHERE id = ?`
 	_, err := s.db.Exec(query, id)
 	return err
+}
+
+// reading_settings 表已存在
+func (s *SQLiteStore) SaveSettings(settings *models.ReadingSettings) error {
+	query := `
+	INSERT INTO reading_settings (id, user_id, font_size, line_height, theme, font)
+	VALUES (?, ?, ?, ?, ?, ?)
+	ON CONFLICT(user_id) DO UPDATE SET
+		font_size = excluded.font_size,
+		line_height = excluded.line_height,
+		theme = excluded.theme,
+		font = excluded.font
+	`
+	_, err := s.db.Exec(query, settings.ID, settings.UserID, settings.FontSize, settings.LineHeight, settings.Theme, settings.Font)
+	return err
+}
+
+func (s *SQLiteStore) GetSettings(userID string) (*models.ReadingSettings, error) {
+	query := `SELECT id, user_id, font_size, line_height, theme, font FROM reading_settings WHERE user_id = ?`
+	row := s.db.QueryRow(query, userID)
+
+	var settings models.ReadingSettings
+	err := row.Scan(&settings.ID, &settings.UserID, &settings.FontSize, &settings.LineHeight, &settings.Theme, &settings.Font)
+	if err != nil {
+		// 返回默认设置
+		return &models.ReadingSettings{
+			UserID:     userID,
+			FontSize:   18,
+			LineHeight: 1.8,
+			Theme:      "light",
+			Font:       "Georgia",
+		}, nil
+	}
+	return &settings, nil
 }
 
 func (s *SQLiteStore) Close() error {

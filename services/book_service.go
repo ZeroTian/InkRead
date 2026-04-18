@@ -140,29 +140,6 @@ func (s *BookService) GetEPUBContent(id string) (*EPUBBook, error) {
 	return ParseEPUB(book.FilePath)
 }
 
-// GetTXTChapters 获取 TXT 章节列表
-func (s *BookService) GetTXTChapters(id string) ([]ChapterInfo, error) {
-	book, err := s.store.GetBook(id)
-	if err != nil {
-		return nil, err
-	}
-
-	if book.FileType != "txt" {
-		return nil, fmt.Errorf("not a txt file")
-	}
-
-	data, err := os.ReadFile(book.FilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	txtParser := NewTXTParser()
-	content, _ := txtParser.ParseContent(data)
-	cleanContent := txtParser.CleanContent(content)
-
-	return txtParser.SplitChapters(cleanContent), nil
-}
-
 func (s *BookService) GetReadingProgress(bookID string) (*models.ReadingProgress, error) {
 	return s.store.GetProgress(bookID)
 }

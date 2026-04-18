@@ -41,3 +41,13 @@ type UploadedFile struct {
 	Author     string
 	UploadedAt time.Time
 }
+
+// ReadingSettings 阅读设置
+type ReadingSettings struct {
+	ID         string  `json:"id"`
+	UserID     string  `json:"user_id"`
+	FontSize   int     `json:"font_size"`
+	LineHeight float64 `json:"line_height"`
+	Theme      string  `json:"theme"`
+	Font       string  `json:"font"`
+}
