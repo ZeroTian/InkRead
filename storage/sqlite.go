@@ -49,6 +49,32 @@ func (s *SQLiteStore) init() error {
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		UNIQUE(book_id, user_id)
 	);
+
+	CREATE TABLE IF NOT EXISTS book_sources (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
+		url_template TEXT NOT NULL,
+		encoding TEXT DEFAULT 'utf-8',
+		book_name_rule TEXT DEFAULT '',
+		author_rule TEXT DEFAULT '',
+		content_rule TEXT DEFAULT '',
+		chapter_list_rule TEXT DEFAULT '',
+		chapter_url_rule TEXT DEFAULT '',
+		enabled INTEGER DEFAULT 1,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE TABLE IF NOT EXISTS cleanup_rules (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
+		pattern TEXT NOT NULL,
+		replacement TEXT DEFAULT '',
+		rule_type TEXT DEFAULT 'replace',
+		enabled INTEGER DEFAULT 1,
+		priority INTEGER DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 	_, err := s.db.Exec(query)
 	return err
