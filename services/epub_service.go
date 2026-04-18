@@ -7,6 +7,7 @@ import (
 	"html"
 	"io"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -183,23 +184,33 @@ func extractTitle(htmlContent, fallback string) string {
 func stripHTML(htmlContent string) string {
 	content := htmlContent
 
+	// Use regexp to remove script, style, head, nav tags and their content
+	scriptRegex := regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`)
+	styleRegex := regexp.MustCompile(`(?i)<style[^>]*>.*?</style>`)
+	headRegex := regexp.MustCompile(`(?i)<head[^>]*>.*?</head>`)
+	navRegex := regexp.MustCompile(`(?i)<nav[^>]*>.*?</nav>`)
+
+	content = scriptRegex.ReplaceAllString(content, "")
+	content = styleRegex.ReplaceAllString(content, "")
+	content = headRegex.ReplaceAllString(content, "")
+	content = navRegex.ReplaceAllString(content, "")
+
+	// Replace specific tags with newlines
 	replacements := []string{
-		"<script[^>]*>.*?</script>", "",
-		"<style[^>]*>.*?</style>", "",
-		"<head[^>]*>.*?</head>", "",
-		"<nav[^>]*>.*?</nav>", "",
-		`<img[^>]*>`, "",
 		`<br\s*/?>`, "\n",
+		`</p>`, "\n",
 		`<p[^>]*>`, "\n",
-		`</p>`, "",
 		`<div[^>]*>`, "\n",
-		`</div>`, "",
+		`<h[1-6][^>]*>`, "\n",
+		`</h[1-6]>`, "\n",
 	}
 
 	for i := 0; i < len(replacements); i += 2 {
-		content = strings.ReplaceAll(content, replacements[i], replacements[i+1])
+		re := regexp.MustCompile(`(?i)` + replacements[i])
+		content = re.ReplaceAllString(content, replacements[i+1])
 	}
 
+	// Remove all remaining HTML tags
 	var result strings.Builder
 	inTag := false
 	for _, r := range content {
@@ -217,7 +228,8 @@ func stripHTML(htmlContent string) string {
 	}
 
 	resultStr := result.String()
-	resultStr = strings.ReplaceAll(resultStr, "\n\n\n", "\n\n")
+	// Collapse multiple newlines into single newlines
+	resultStr = regexp.MustCompile(`\n+`).ReplaceAllString(resultStr, "\n")
 	resultStr = strings.TrimSpace(resultStr)
 	return html.UnescapeString(resultStr)
 }

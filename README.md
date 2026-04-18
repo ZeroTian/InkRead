@@ -145,6 +145,6 @@ curl -X POST http://localhost:8080/api/ai/summarize \
 - [x] 书架 CRUD API
 - [x] 电子书文件存储
 - [x] AI 总结接口
-- [ ] EPUB 解析
-- [ ] 阅读进度管理
-- [ ] 用户认证
+- [x] EPUB 解析
+- [x] 阅读进度管理
+- [x] 单元测试

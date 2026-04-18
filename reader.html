@@ -2,65 +2,713 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>InkRead - 阅读器</title>
-    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>InkRead - 电纸书阅读器</title>
+    <style>
+        /* E-ink 灰阶色系 */
+        :root {
+            --ink-black: #000;
+            --ink-dark: #333;
+            --ink-mid: #666;
+            --ink-light: #999;
+            --ink-pale: #ccc;
+            --ink-faint: #eee;
+            --ink-white: #fff;
+        }
+
+        /* 主题：白底黑字 */
+        .theme-light {
+            --bg: var(--ink-white);
+            --text: var(--ink-black);
+            --text-secondary: var(--ink-mid);
+            --border: var(--ink-pale);
+            --accent: var(--ink-dark);
+        }
+
+        /* 主题：黄底黑字（仿纸） */
+        .theme-sepia {
+            --bg: #f4ecd8;
+            --text: var(--ink-black);
+            --text-secondary: #5b4636;
+            --border: #d4c4a8;
+            --accent: #5b4636;
+        }
+
+        /* 主题：黑底白字 */
+        .theme-dark {
+            --bg: var(--ink-black);
+            --text: var(--ink-white);
+            --text-secondary: var(--ink-light);
+            --border: var(--ink-dark);
+            --accent: var(--ink-pale);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Georgia, "Times New Roman", serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ===== 书架页面 ===== */
+        .shelf-page {
+            padding: 1em;
+            max-width: 100%;
+        }
+
+        .shelf-header {
+            text-align: center;
+            padding: 1em 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1em;
+        }
+
+        .shelf-header h1 {
+            font-size: 1.5em;
+            font-weight: normal;
+        }
+
+        .book-list {
+            list-style: none;
+        }
+
+        .book-item {
+            display: flex;
+            align-items: center;
+            padding: 1em;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .book-item:active {
+            background: var(--ink-faint);
+        }
+
+        .book-cover {
+            width: 3em;
+            height: 4em;
+            background: var(--ink-pale);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        .book-info {
+            margin-left: 1em;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .book-title {
+            font-size: 1em;
+            font-weight: normal;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .book-author {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-top: 0.3em;
+        }
+
+        .book-progress {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-top: 0.3em;
+        }
+
+        .progress-bar-small {
+            width: 100%;
+            height: 2px;
+            background: var(--border);
+            margin-top: 0.3em;
+        }
+
+        .progress-fill-small {
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .empty-shelf {
+            text-align: center;
+            padding: 3em;
+            color: var(--text-secondary);
+        }
+
+        /* ===== 阅读页面 ===== */
+        .reader-page {
+            display: none;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .reader-page.active {
+            display: flex;
+        }
+
+        .reader-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8em 1em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.5em 1em;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        .nav-btn:active {
+            background: var(--ink-faint);
+        }
+
+        .nav-title {
+            font-size: 1em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 50%;
+            text-align: center;
+        }
+
+        .reader-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1em;
+            font-size: 1em;
+            line-height: 1.8;
+        }
+
+        .reader-body h1, .reader-body h2, .reader-body h3 {
+            margin: 1em 0 0.5em;
+            font-weight: normal;
+        }
+
+        .reader-body p {
+            margin: 0.5em 0;
+            text-indent: 2em;
+        }
+
+        .reader-footer {
+            padding: 0.5em 1em;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1em;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .progress-text {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        /* ===== 设置面板 ===== */
+        .settings-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .settings-overlay.active {
+            display: block;
+        }
+
+        .settings-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+            padding: 1em;
+            display: none;
+        }
+
+        .settings-panel.active {
+            display: block;
+        }
+
+        .settings-section {
+            margin-bottom: 1.5em;
+        }
+
+        .settings-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5em;
+            display: block;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+        }
+
+        .font-btn {
+            width: 2.5em;
+            height: 2.5em;
+            background: var(--ink-faint);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        .font-btn:active {
+            background: var(--border);
+        }
+
+        .font-size-value {
+            min-width: 3em;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .line-height-btns {
+            display: flex;
+            gap: 0.5em;
+        }
+
+        .line-btn {
+            padding: 0.5em 1em;
+            background: var(--ink-faint);
+            border: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .line-btn.active {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .theme-btns {
+            display: flex;
+            gap: 0.5em;
+        }
+
+        .theme-btn {
+            padding: 0.5em 1em;
+            background: var(--ink-faint);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .theme-btn.active {
+            border-width: 2px;
+        }
+
+        .theme-btn-light { background: #fff; color: #000; }
+        .theme-btn-sepia { background: #f4ecd8; color: #5b4636; }
+        .theme-btn-dark { background: #000; color: #fff; }
+
+        /* ===== 加载状态 ===== */
+        .loading {
+            text-align: center;
+            padding: 3em;
+            color: var(--text-secondary);
+        }
+
+        .error-msg {
+            text-align: center;
+            padding: 2em;
+            color: var(--ink-mid);
+        }
+
+        /* ===== 响应式 ===== */
+        @media (min-width: 600px) {
+            .shelf-page {
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 2em;
+            }
+            .reader-body {
+                max-width: 50em;
+                margin: 0 auto;
+                padding: 2em;
+            }
+        }
+
+        @media (min-width: 800px) {
+            .reader-body {
+                font-size: 1.1em;
+            }
+        }
+    </style>
 </head>
-<body>
-    <div class="reader-container" id="readerContainer">
-        <header class="reader-header" id="readerHeader">
-            <button class="btn-back" id="btnBack">← 返回</button>
-            <h2 class="reader-title" id="readerTitle">书籍标题</h2>
-            <button class="btn-ai-summary" id="btnAiSummary">🤖 AI摘要</button>
+<body class="theme-light">
+    <!-- 书架页面 -->
+    <div class="shelf-page" id="shelfPage">
+        <header class="shelf-header">
+            <h1>📚 书架</h1>
         </header>
+        <div id="bookListContainer">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
 
-        <main class="reader-content" id="readerContent">
-            <!-- 动态加载阅读内容 -->
+    <!-- 阅读页面 -->
+    <div class="reader-page" id="readerPage">
+        <nav class="reader-nav">
+            <button class="nav-btn" id="btnBack">← 书架</button>
+            <span class="nav-title" id="navTitle">书籍标题</span>
+            <button class="nav-btn" id="btnSettings">设置</button>
+        </nav>
+        <main class="reader-body" id="readerBody">
+            <div class="loading">加载中...</div>
         </main>
-
-        <footer class="reader-footer" id="readerFooter">
+        <footer class="reader-footer">
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
-            <div class="page-info" id="pageInfo">第 1 / 10 页</div>
+            <span class="progress-text" id="progressText">0%</span>
         </footer>
-
-        <aside class="reader-controls" id="readerControls">
-            <div class="control-section">
-                <label class="control-label">字体大小</label>
-                <div class="control-buttons">
-                    <button class="btn-font" id="fontDecrease">A-</button>
-                    <span class="font-size-display" id="fontSizeDisplay">18px</span>
-                    <button class="btn-font" id="fontIncrease">A+</button>
-                </div>
-            </div>
-            <div class="control-section">
-                <label class="control-label">亮度</label>
-                <input type="range" class="brightness-slider" id="brightnessSlider" min="20" max="100" value="100">
-            </div>
-            <div class="control-section">
-                <button class="btn-theme-reader" id="themeToggleReader">🌓 切换主题</button>
-            </div>
-        </aside>
     </div>
 
-    <!-- AI摘要弹窗 -->
-    <div class="summary-modal" id="summaryModal">
-        <div class="summary-content">
-            <div class="summary-header">
-                <h3>📝 AI 摘要</h3>
-                <button class="btn-close" id="btnCloseSummary">×</button>
+    <!-- 设置面板 -->
+    <div class="settings-overlay" id="settingsOverlay"></div>
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-section">
+            <label class="settings-label">字体大小</label>
+            <div class="settings-row">
+                <button class="font-btn" id="fontDecrease">A-</button>
+                <span class="font-size-value" id="fontSizeValue">18px</span>
+                <button class="font-btn" id="fontIncrease">A+</button>
             </div>
-            <div class="summary-body" id="summaryBody">
-                <div class="summary-loading" id="summaryLoading">
-                    <span class="loading-spinner">⏳</span>
-                    <p>正在生成摘要...</p>
-                </div>
-                <div class="summary-text" id="summaryText"></div>
+        </div>
+        <div class="settings-section">
+            <label class="settings-label">行间距</label>
+            <div class="line-height-btns">
+                <button class="line-btn" data-line="1.5">紧凑</button>
+                <button class="line-btn active" data-line="1.8">适中</button>
+                <button class="line-btn" data-line="2.2">宽松</button>
+            </div>
+        </div>
+        <div class="settings-section">
+            <label class="settings-label">主题</label>
+            <div class="theme-btns">
+                <button class="theme-btn theme-btn-light active" data-theme="light">白底</button>
+                <button class="theme-btn theme-btn-sepia" data-theme="sepia">黄底</button>
+                <button class="theme-btn theme-btn-dark" data-theme="dark">黑底</button>
             </div>
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script>
+        // ===== 状态管理 =====
+        const state = {
+            books: [],
+            currentBook: null,
+            fontSize: 18,
+            lineHeight: 1.8,
+            theme: 'light',
+            scrollPosition: 0
+        };
+
+        // API 基础路径
+        const API_BASE = '/api';
+
+        // ===== DOM 元素 =====
+        const $ = id => document.getElementById(id);
+        const shelfPage = $('shelfPage');
+        const readerPage = $('readerPage');
+        const bookListContainer = $('bookListContainer');
+        const readerBody = $('readerBody');
+        const navTitle = $('navTitle');
+        const progressFill = $('progressFill');
+        const progressText = $('progressText');
+        const settingsPanel = $('settingsPanel');
+        const settingsOverlay = $('settingsOverlay');
+        const fontSizeValue = $('fontSizeValue');
+
+        // ===== API 请求 =====
+        async function api(url, options = {}) {
+            try {
+                const res = await fetch(API_BASE + url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+                const json = await res.json();
+                if (json.code !== 200) {
+                    throw new Error(json.message || '请求失败');
+                }
+                return json.data;
+            } catch (err) {
+                console.error('API Error:', err);
+                throw err;
+            }
+        }
+
+        // ===== 书架页面 =====
+        async function loadBooks() {
+            try {
+                const data = await api('/books');
+                state.books = data.books || data || [];
+                renderBookList();
+            } catch (err) {
+                bookListContainer.innerHTML = '<div class="error-msg">加载失败: ' + err.message + '</div>';
+            }
+        }
+
+        function renderBookList() {
+            if (!state.books.length) {
+                bookListContainer.innerHTML = '<div class="empty-shelf">书架为空，请上传书籍</div>';
+                return;
+            }
+
+            const html = state.books.map(book => {
+                const progress = book.progress || 0;
+                return `
+                    <li class="book-item" data-id="${book.id}" onclick="openBook('${book.id}')">
+                        <div class="book-cover">📖</div>
+                        <div class="book-info">
+                            <div class="book-title">${escapeHtml(book.title || '未知标题')}</div>
+                            <div class="book-author">${escapeHtml(book.author || '未知作者')}</div>
+                            <div class="book-progress">${Math.round(progress)}% 已读</div>
+                            <div class="progress-bar-small">
+                                <div class="progress-fill-small" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+
+            bookListContainer.innerHTML = '<ul class="book-list">' + html + '</ul>';
+        }
+
+        // ===== 阅读页面 =====
+        async function openBook(bookId) {
+            state.currentBook = bookId;
+            try {
+                // 加载书籍内容和进度
+                const [bookData, progress] = await Promise.all([
+                    api('/books/' + bookId),
+                    api('/progress/' + bookId).catch(() => ({ scroll_position: 0, percentage: 0 }))
+                ]);
+
+                state.scrollPosition = progress.scroll_position || 0;
+                const content = bookData.content || bookData.html || '';
+
+                // 更新 UI
+                navTitle.textContent = bookData.title || '书籍';
+                readerBody.innerHTML = content;
+                document.body.className = 'theme-' + state.theme;
+                applySettings();
+
+                // 显示阅读页面
+                shelfPage.style.display = 'none';
+                readerPage.classList.add('active');
+
+                // 恢复阅读位置
+                if (state.scrollPosition > 0) {
+                    setTimeout(() => {
+                        const scrollTop = (state.scrollPosition / 100) * (readerBody.scrollHeight - readerBody.clientHeight);
+                        readerBody.scrollTop = scrollTop;
+                    }, 100);
+                }
+
+                updateProgress();
+
+            } catch (err) {
+                readerBody.innerHTML = '<div class="error-msg">加载失败: ' + err.message + '</div>';
+                shelfPage.style.display = 'none';
+                readerPage.classList.add('active');
+            }
+        }
+
+        function goToShelf() {
+            state.currentBook = null;
+            readerPage.classList.remove('active');
+            shelfPage.style.display = 'block';
+            loadBooks(); // 刷新列表以显示最新进度
+        }
+
+        // ===== 进度管理 =====
+        function updateProgress() {
+            const scrollHeight = readerBody.scrollHeight - readerBody.clientHeight;
+            const scrollTop = readerBody.scrollTop;
+            const percentage = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+
+            state.scrollPosition = percentage;
+            progressFill.style.width = percentage + '%';
+            progressText.textContent = Math.round(percentage) + '%';
+
+            // 自动保存进度
+            saveProgress();
+        }
+
+        let saveTimer = null;
+        function saveProgress() {
+            if (!state.currentBook) return;
+
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(async () => {
+                try {
+                    await api('/progress/' + state.currentBook, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            current_chapter: 1,
+                            scroll_position: state.scrollPosition,
+                            percentage: state.scrollPosition
+                        })
+                    });
+                } catch (err) {
+                    console.error('保存进度失败:', err);
+                }
+            }, 2000); // 2秒防抖
+        }
+
+        // ===== 设置面板 =====
+        function toggleSettings() {
+            const isActive = settingsPanel.classList.contains('active');
+            if (isActive) {
+                settingsPanel.classList.remove('active');
+                settingsOverlay.classList.remove('active');
+            } else {
+                settingsPanel.classList.add('active');
+                settingsOverlay.classList.add('active');
+            }
+        }
+
+        function changeFontSize(delta) {
+            state.fontSize = Math.min(28, Math.max(12, state.fontSize + delta));
+            applySettings();
+        }
+
+        function setLineHeight(height) {
+            state.lineHeight = parseFloat(height);
+            document.querySelectorAll('.line-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.line === height);
+            });
+            applySettings();
+        }
+
+        function setTheme(theme) {
+            state.theme = theme;
+            document.body.className = 'theme-' + theme;
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === theme);
+            });
+            applySettings();
+        }
+
+        function applySettings() {
+            readerBody.style.fontSize = state.fontSize + 'px';
+            readerBody.style.lineHeight = state.lineHeight;
+            fontSizeValue.textContent = state.fontSize + 'px';
+        }
+
+        // ===== 工具函数 =====
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===== 事件绑定 =====
+        $('btnBack').addEventListener('click', goToShelf);
+        $('btnSettings').addEventListener('click', toggleSettings);
+        $('settingsOverlay').addEventListener('click', toggleSettings);
+        $('fontDecrease').addEventListener('click', () => changeFontSize(-2));
+        $('fontIncrease').addEventListener('click', () => changeFontSize(2));
+
+        document.querySelectorAll('.line-btn').forEach(btn => {
+            btn.addEventListener('click', () => setLineHeight(btn.dataset.line));
+        });
+
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => setTheme(btn.dataset.theme));
+        });
+
+        readerBody.addEventListener('scroll', updateProgress);
+
+        // 恢复上次的字体大小和主题
+        const savedFontSize = localStorage.getItem('inkread_fontSize');
+        const savedTheme = localStorage.getItem('inkread_theme');
+        const savedLineHeight = localStorage.getItem('inkread_lineHeight');
+
+        if (savedFontSize) state.fontSize = parseInt(savedFontSize);
+        if (savedTheme) {
+            state.theme = savedTheme;
+            document.body.className = 'theme-' + savedTheme;
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === savedTheme);
+            });
+        }
+        if (savedLineHeight) {
+            state.lineHeight = parseFloat(savedLineHeight);
+            document.querySelectorAll('.line-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.line === savedLineHeight);
+            });
+        }
+
+        // 保存设置
+        function saveSettings() {
+            localStorage.setItem('inkread_fontSize', state.fontSize);
+            localStorage.setItem('inkread_theme', state.theme);
+            localStorage.setItem('inkread_lineHeight', state.lineHeight);
+        }
+
+        // 监听设置变化并保存
+        const originalChangeFontSize = changeFontSize;
+        changeFontSize = function(delta) {
+            originalChangeFontSize(delta);
+            saveSettings();
+        };
+
+        const originalSetLineHeight = setLineHeight;
+        setLineHeight = function(height) {
+            originalSetLineHeight(height);
+            saveSettings();
+        };
+
+        const originalSetTheme = setTheme;
+        setTheme = function(theme) {
+            originalSetTheme(theme);
+            saveSettings();
+        };
+
+        // ===== 初始化 =====
+        loadBooks();
+    </script>
 </body>
 </html>

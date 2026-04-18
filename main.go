@@ -61,6 +61,10 @@ func main() {
 	r := gin.Default()
 
 	r.Static("/uploads", uploadDir)
+	r.StaticFile("/reader.html", "./reader.html")
+	r.StaticFile("/index.html", "./index.html")
+	r.Static("/css", "./css")
+	r.Static("/js", "./js")
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
