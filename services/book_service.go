@@ -146,3 +146,57 @@ func (s *BookService) SaveReadingProgress(progress *models.ReadingProgress) erro
 	}
 	return s.store.SaveProgress(progress)
 }
+
+// BookSource methods
+
+func (s *BookService) ListSources() ([]models.BookSource, error) {
+	return s.store.ListBookSources()
+}
+
+func (s *BookService) CreateSource(source *models.BookSource) error {
+	if source.ID == "" {
+		source.ID = uuid.New().String()
+	}
+	if source.Encoding == "" {
+		source.Encoding = "utf-8"
+	}
+	return s.store.CreateBookSource(source)
+}
+
+func (s *BookService) UpdateSource(source *models.BookSource) error {
+	return s.store.UpdateBookSource(source)
+}
+
+func (s *BookService) DeleteSource(id string) error {
+	return s.store.DeleteBookSource(id)
+}
+
+func (s *BookService) TestSource(url string) (*models.SourceTestResponse, error) {
+	// TODO: 实现书源测试
+	return &models.SourceTestResponse{
+		Success: false,
+		Error:   "not implemented",
+	}, nil
+}
+
+func (s *BookService) ImportFromURL(url, sourceID string) (*models.Book, error) {
+	// TODO: 实现 Web 导入
+	return nil, fmt.Errorf("not implemented")
+}
+
+// CleanupRule methods
+
+func (s *BookService) ListCleanupRules() ([]models.CleanupRule, error) {
+	return s.store.ListCleanupRules()
+}
+
+func (s *BookService) CreateCleanupRule(rule *models.CleanupRule) error {
+	if rule.ID == "" {
+		rule.ID = uuid.New().String()
+	}
+	return s.store.CreateCleanupRule(rule)
+}
+
+func (s *BookService) DeleteCleanupRule(id string) error {
+	return s.store.DeleteCleanupRule(id)
+}

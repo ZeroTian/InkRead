@@ -186,6 +186,131 @@ func (s *SQLiteStore) SaveProgress(progress *models.ReadingProgress) error {
 	return err
 }
 
+// BookSource CRUD
+
+func (s *SQLiteStore) CreateBookSource(source *models.BookSource) error {
+	query := `
+	INSERT INTO book_sources (id, name, url_template, encoding, book_name_rule, author_rule, content_rule, chapter_list_rule, chapter_url_rule, enabled, created_at, updated_at)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	_, err := s.db.Exec(query, source.ID, source.Name, source.URLTemplate, source.Encoding,
+		source.BookNameRule, source.AuthorRule, source.ContentRule, source.ChapterRule,
+		source.ChapterURLRule, source.Enabled, source.CreatedAt, source.UpdatedAt)
+	return err
+}
+
+func (s *SQLiteStore) GetBookSource(id string) (*models.BookSource, error) {
+	query := `
+	SELECT id, name, url_template, encoding, book_name_rule, author_rule, content_rule, chapter_list_rule, chapter_url_rule, enabled, created_at, updated_at
+	FROM book_sources WHERE id = ?
+	`
+	row := s.db.QueryRow(query, id)
+
+	var source models.BookSource
+	var enabled int
+	err := row.Scan(&source.ID, &source.Name, &source.URLTemplate, &source.Encoding,
+		&source.BookNameRule, &source.AuthorRule, &source.ContentRule, &source.ChapterRule,
+		&source.ChapterURLRule, &enabled, &source.CreatedAt, &source.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	source.Enabled = enabled == 1
+	return &source, nil
+}
+
+func (s *SQLiteStore) ListBookSources() ([]models.BookSource, error) {
+	query := `
+	SELECT id, name, url_template, encoding, book_name_rule, author_rule, content_rule, chapter_list_rule, chapter_url_rule, enabled, created_at, updated_at
+	FROM book_sources ORDER BY created_at DESC
+	`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sources []models.BookSource
+	for rows.Next() {
+		var source models.BookSource
+		var enabled int
+		if err := rows.Scan(&source.ID, &source.Name, &source.URLTemplate, &source.Encoding,
+			&source.BookNameRule, &source.AuthorRule, &source.ContentRule, &source.ChapterRule,
+			&source.ChapterURLRule, &enabled, &source.CreatedAt, &source.UpdatedAt); err != nil {
+			return nil, err
+		}
+		source.Enabled = enabled == 1
+		sources = append(sources, source)
+	}
+	return sources, nil
+}
+
+func (s *SQLiteStore) UpdateBookSource(source *models.BookSource) error {
+	source.UpdatedAt = time.Now()
+	query := `
+	UPDATE book_sources SET name = ?, url_template = ?, encoding = ?, book_name_rule = ?,
+		author_rule = ?, content_rule = ?, chapter_list_rule = ?, chapter_url_rule = ?,
+		enabled = ?, updated_at = ?
+	WHERE id = ?
+	`
+	enabled := 0
+	if source.Enabled {
+		enabled = 1
+	}
+	_, err := s.db.Exec(query, source.Name, source.URLTemplate, source.Encoding,
+		source.BookNameRule, source.AuthorRule, source.ContentRule, source.ChapterRule,
+		source.ChapterURLRule, enabled, source.UpdatedAt, source.ID)
+	return err
+}
+
+func (s *SQLiteStore) DeleteBookSource(id string) error {
+	query := `DELETE FROM book_sources WHERE id = ?`
+	_, err := s.db.Exec(query, id)
+	return err
+}
+
+// CleanupRule CRUD
+
+func (s *SQLiteStore) CreateCleanupRule(rule *models.CleanupRule) error {
+	query := `
+	INSERT INTO cleanup_rules (id, name, pattern, replacement, rule_type, enabled, priority, created_at)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	_, err := s.db.Exec(query, rule.ID, rule.Name, rule.Pattern, rule.Replacement,
+		rule.RuleType, rule.Enabled, rule.Priority, rule.CreatedAt)
+	return err
+}
+
+func (s *SQLiteStore) ListCleanupRules() ([]models.CleanupRule, error) {
+	query := `
+	SELECT id, name, pattern, replacement, rule_type, enabled, priority, created_at
+	FROM cleanup_rules ORDER BY priority DESC, created_at ASC
+	`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rules []models.CleanupRule
+	for rows.Next() {
+		var rule models.CleanupRule
+		var enabled int
+		if err := rows.Scan(&rule.ID, &rule.Name, &rule.Pattern, &rule.Replacement,
+			&rule.RuleType, &enabled, &rule.Priority, &rule.CreatedAt); err != nil {
+			return nil, err
+		}
+		rule.Enabled = enabled == 1
+		rules = append(rules, rule)
+	}
+	return rules, nil
+}
+
+func (s *SQLiteStore) DeleteCleanupRule(id string) error {
+	query := `DELETE FROM cleanup_rules WHERE id = ?`
+	_, err := s.db.Exec(query, id)
+	return err
+}
+
 func (s *SQLiteStore) Close() error {
 	return s.db.Close()
 }
