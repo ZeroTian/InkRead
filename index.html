@@ -32,6 +32,10 @@
                 <span class="nav-icon">📚</span>
                 <span class="nav-label">书架</span>
             </button>
+            <button class="nav-btn" data-view="sources">
+                <span class="nav-icon">🔗</span>
+                <span class="nav-label">书源</span>
+            </button>
             <button class="nav-btn" data-view="summary">
                 <span class="nav-icon">📝</span>
                 <span class="nav-label">摘要</span>
@@ -41,6 +45,100 @@
                 <span class="nav-label">设置</span>
             </button>
         </nav>
+
+    <!-- 书源管理模态框 -->
+    <div class="source-modal" id="sourceModal">
+        <div class="source-modal-content">
+            <div class="source-modal-header">
+                <h3>📡 书源管理</h3>
+                <button class="btn-close" id="closeSourceModal">×</button>
+            </div>
+            <div class="source-modal-body">
+                <div class="source-toolbar">
+                    <button class="btn-primary" id="addSourceBtn">➕ 添加书源</button>
+                </div>
+                <div class="source-list" id="sourceList">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 书源表单模态框 -->
+    <div class="source-form-modal" id="sourceFormModal">
+        <div class="source-form-content">
+            <div class="source-form-header">
+                <h3 id="sourceFormTitle">添加书源</h3>
+                <button class="btn-close" id="closeSourceForm">×</button>
+            </div>
+            <form class="source-form" id="sourceForm">
+                <input type="hidden" id="sourceId">
+                <div class="form-group">
+                    <label for="sourceName">书源名称 *</label>
+                    <input type="text" id="sourceName" required placeholder="例如：笔趣阁">
+                </div>
+                <div class="form-group">
+                    <label for="sourceUrlTemplate">URL 模板 *</label>
+                    <input type="text" id="sourceUrlTemplate" required placeholder="https://example.com/book/{searchTerm}">
+                </div>
+                <div class="form-group">
+                    <label for="sourceEncoding">编码</label>
+                    <select id="sourceEncoding">
+                        <option value="utf-8" selected>UTF-8</option>
+                        <option value="gbk">GBK</option>
+                        <option value="gb2312">GB2312</option>
+                        <option value="gb18030">GB18030</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bookNameRule">书名规则 * (XPath/正则)</label>
+                    <input type="text" id="bookNameRule" required placeholder="//h1[@class='title']">
+                </div>
+                <div class="form-group">
+                    <label for="authorRule">作者规则 (XPath/正则)</label>
+                    <input type="text" id="authorRule" placeholder="//span[@class='author']">
+                </div>
+                <div class="form-group">
+                    <label for="chapterListRule">章节列表规则 * (XPath)</label>
+                    <input type="text" id="chapterListRule" required placeholder="//div[@class='chapter-list']//a">
+                </div>
+                <div class="form-group">
+                    <label for="chapterUrlRule">章节URL规则 * (XPath)</label>
+                    <input type="text" id="chapterUrlRule" required placeholder="@href">
+                </div>
+                <div class="form-group">
+                    <label for="contentRule">正文规则 * (XPath)</label>
+                    <input type="text" id="contentRule" required placeholder="//div[@class='content']">
+                </div>
+                <div class="form-group">
+                    <label class="toggle-label">
+                        <span>启用书源</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="sourceEnabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="cancelSourceForm">取消</button>
+                    <button type="submit" class="btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 测试书源结果 -->
+    <div class="source-test-modal" id="sourceTestModal">
+        <div class="source-form-content">
+            <div class="source-form-header">
+                <h3>🧪 书源测试</h3>
+                <button class="btn-close" id="closeSourceTest">×</button>
+            </div>
+            <div class="source-test-body" id="sourceTestBody">
+                <div class="loading">测试中...</div>
+            </div>
+        </div>
+    </div>
     </div>
 
     <script src="js/app.js"></script>

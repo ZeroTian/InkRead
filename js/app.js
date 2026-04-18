@@ -480,6 +480,9 @@ function handleNavigation(view) {
     switch (view) {
         case 'shelf':
             break;
+        case 'sources':
+            showSourceModal();
+            break;
         case 'summary':
             if (state.currentBook) {
                 window.location.href = `reader.html?id=${state.currentBook.id}&view=summary`;
@@ -521,6 +524,283 @@ function showSettings() {
     document.body.insertAdjacentHTML('beforeend', settingsHtml);
 }
 
+// ========== 书源管理 ==========
+let sources = [];
+
+async function loadSources() {
+    try {
+        const response = await apiRequest('/sources');
+        sources = response.data || [];
+        renderSourceList();
+    } catch (error) {
+        console.error('加载书源失败:', error);
+        sources = [];
+        renderSourceList();
+    }
+}
+
+function renderSourceList() {
+    const list = $('#sourceList');
+    if (!list) return;
+
+    if (sources.length === 0) {
+        list.innerHTML = '<div class="empty-sources">暂无书源<br>点击上方按钮添加书源</div>';
+        return;
+    }
+
+    list.innerHTML = sources.map(source => `
+        <div class="source-item" data-id="${source.id}">
+            <div class="source-item-header">
+                <span class="source-item-name">${source.name}</span>
+                <span class="source-item-status ${source.enabled ? 'enabled' : 'disabled'}">${source.enabled ? '启用' : '禁用'}</span>
+            </div>
+            <div class="source-item-url">${source.urlTemplate || ''}</div>
+            <div class="source-item-actions">
+                <button class="btn-small" onclick="editSource('${source.id}')">编辑</button>
+                <button class="btn-small" onclick="testSource('${source.id}')">测试</button>
+                <button class="btn-small" onclick="deleteSource('${source.id}')">删除</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showSourceModal() {
+    const modal = $('#sourceModal');
+    if (modal) {
+        modal.classList.add('show');
+        loadSources();
+    }
+}
+
+function hideSourceModal() {
+    const modal = $('#sourceModal');
+    if (modal) modal.classList.remove('show');
+}
+
+function showSourceForm(source = null) {
+    const modal = $('#sourceFormModal');
+    const title = $('#sourceFormTitle');
+    const form = $('#sourceForm');
+    const idInput = $('#sourceId');
+    const nameInput = $('#sourceName');
+    const urlTemplateInput = $('#sourceUrlTemplate');
+    const encodingInput = $('#sourceEncoding');
+    const bookNameRuleInput = $('#bookNameRule');
+    const authorRuleInput = $('#authorRule');
+    const chapterListRuleInput = $('#chapterListRule');
+    const chapterUrlRuleInput = $('#chapterUrlRule');
+    const contentRuleInput = $('#contentRule');
+    const enabledInput = $('#sourceEnabled');
+
+    if (!modal) return;
+
+    if (source) {
+        title.textContent = '编辑书源';
+        idInput.value = source.id || '';
+        nameInput.value = source.name || '';
+        urlTemplateInput.value = source.urlTemplate || '';
+        encodingInput.value = source.encoding || 'utf-8';
+        bookNameRuleInput.value = source.bookNameRule || '';
+        authorRuleInput.value = source.authorRule || '';
+        chapterListRuleInput.value = source.chapterListRule || '';
+        chapterUrlRuleInput.value = source.chapterUrlRule || '';
+        contentRuleInput.value = source.contentRule || '';
+        enabledInput.checked = source.enabled !== false;
+    } else {
+        title.textContent = '添加书源';
+        form.reset();
+        idInput.value = '';
+        enabledInput.checked = true;
+    }
+
+    modal.classList.add('show');
+}
+
+function hideSourceForm() {
+    const modal = $('#sourceFormModal');
+    if (modal) modal.classList.remove('show');
+}
+
+window.editSource = function(id) {
+    const source = sources.find(s => s.id == id || s.id === id);
+    if (source) {
+        showSourceForm(source);
+    }
+};
+
+async function saveSource(e) {
+    e.preventDefault();
+    
+    const id = $('#sourceId').value;
+    const sourceData = {
+        name: $('#sourceName').value.trim(),
+        urlTemplate: $('#sourceUrlTemplate').value.trim(),
+        encoding: $('#sourceEncoding').value,
+        bookNameRule: $('#bookNameRule').value.trim(),
+        authorRule: $('#authorRule').value.trim(),
+        chapterListRule: $('#chapterListRule').value.trim(),
+        chapterUrlRule: $('#chapterUrlRule').value.trim(),
+        contentRule: $('#contentRule').value.trim(),
+        enabled: $('#sourceEnabled').checked
+    };
+
+    // 验证必填字段
+    if (!sourceData.name || !sourceData.urlTemplate || !sourceData.bookNameRule || 
+        !sourceData.chapterListRule || !sourceData.chapterUrlRule || !sourceData.contentRule) {
+        showToast('请填写所有必填项');
+        return;
+    }
+
+    try {
+        if (id) {
+            await apiRequest(`/sources/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(sourceData)
+            });
+            showToast('更新成功');
+        } else {
+            await apiRequest('/sources', {
+                method: 'POST',
+                body: JSON.stringify(sourceData)
+            });
+            showToast('添加成功');
+        }
+        hideSourceForm();
+        loadSources();
+    } catch (error) {
+        console.error('保存书源失败:', error);
+        showToast(error.message || '保存失败');
+    }
+}
+
+window.deleteSource = async function(id) {
+    if (!confirm('确定要删除这个书源吗？')) return;
+    
+    try {
+        await apiRequest(`/sources/${id}`, { method: 'DELETE' });
+        showToast('删除成功');
+        loadSources();
+    } catch (error) {
+        console.error('删除书源失败:', error);
+        showToast(error.message || '删除失败');
+    }
+};
+
+function showSourceTestModal() {
+    const modal = $('#sourceTestModal');
+    if (modal) modal.classList.add('show');
+}
+
+function hideSourceTestModal() {
+    const modal = $('#sourceTestModal');
+    if (modal) modal.classList.remove('show');
+}
+
+window.testSource = async function(id) {
+    showSourceTestModal();
+    const body = $('#sourceTestBody');
+    if (body) body.innerHTML = '<div class="loading">测试中...</div>';
+
+    try {
+        const response = await apiRequest(`/sources/test`, {
+            method: 'POST',
+            body: JSON.stringify({ sourceId: id })
+        });
+        
+        if (body) {
+            const data = response.data || {};
+            body.innerHTML = `
+                <div class="test-result-item ${data.success ? 'success' : 'error'}">
+                    <div class="test-result-label">状态</div>
+                    <div class="test-result-value">${data.success ? '✅ 测试成功' : '❌ 测试失败'}</div>
+                </div>
+                ${data.bookName ? `<div class="test-result-item success">
+                    <div class="test-result-label">书名</div>
+                    <div class="test-result-value">${data.bookName}</div>
+                </div>` : ''}
+                ${data.author ? `<div class="test-result-item success">
+                    <div class="test-result-label">作者</div>
+                    <div class="test-result-value">${data.author}</div>
+                </div>` : ''}
+                ${data.chapterCount ? `<div class="test-result-item success">
+                    <div class="test-result-label">章节数</div>
+                    <div class="test-result-value">${data.chapterCount}</div>
+                </div>` : ''}
+                ${data.error ? `<div class="test-result-item error">
+                    <div class="test-result-label">错误信息</div>
+                    <div class="test-result-value">${data.error}</div>
+                </div>` : ''}
+            `;
+        }
+    } catch (error) {
+        console.error('测试书源失败:', error);
+        if (body) {
+            body.innerHTML = `
+                <div class="test-result-item error">
+                    <div class="test-result-label">错误</div>
+                    <div class="test-result-value">${error.message || '测试失败'}</div>
+                </div>
+            `;
+        }
+    }
+};
+
+function initSourceManagement() {
+    const addSourceBtn = $('#addSourceBtn');
+    const closeSourceModal = $('#closeSourceModal');
+    const closeSourceForm = $('#closeSourceForm');
+    const closeSourceTest = $('#closeSourceTest');
+    const cancelSourceForm = $('#cancelSourceForm');
+    const sourceForm = $('#sourceForm');
+
+    if (addSourceBtn) {
+        addSourceBtn.addEventListener('click', () => showSourceForm());
+    }
+
+    if (closeSourceModal) {
+        closeSourceModal.addEventListener('click', hideSourceModal);
+    }
+
+    if (closeSourceForm) {
+        closeSourceForm.addEventListener('click', hideSourceForm);
+    }
+
+    if (closeSourceTest) {
+        closeSourceTest.addEventListener('click', hideSourceTestModal);
+    }
+
+    if (cancelSourceForm) {
+        cancelSourceForm.addEventListener('click', hideSourceForm);
+    }
+
+    if (sourceForm) {
+        sourceForm.addEventListener('submit', saveSource);
+    }
+
+    // 点击模态框外部关闭
+    const sourceModal = $('#sourceModal');
+    const sourceFormModal = $('#sourceFormModal');
+    const sourceTestModal = $('#sourceTestModal');
+
+    if (sourceModal) {
+        sourceModal.addEventListener('click', (e) => {
+            if (e.target === sourceModal) hideSourceModal();
+        });
+    }
+
+    if (sourceFormModal) {
+        sourceFormModal.addEventListener('click', (e) => {
+            if (e.target === sourceFormModal) hideSourceForm();
+        });
+    }
+
+    if (sourceTestModal) {
+        sourceTestModal.addEventListener('click', (e) => {
+            if (e.target === sourceTestModal) hideSourceTestModal();
+        });
+    }
+}
+
 // ========== 初始化 ==========
 document.addEventListener('DOMContentLoaded', () => {
     // 初始化主题
@@ -531,6 +811,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
+
+    // 初始化书源管理
+    initSourceManagement();
 
     // 根据页面类型初始化
     const isReaderPage = window.location.pathname.includes('reader.html');
