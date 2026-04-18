@@ -172,16 +172,13 @@ func (s *BookService) DeleteSource(id string) error {
 }
 
 func (s *BookService) TestSource(url string) (*models.SourceTestResponse, error) {
-	// TODO: 实现书源测试
-	return &models.SourceTestResponse{
-		Success: false,
-		Error:   "not implemented",
-	}, nil
+	importService := NewWebImportService(s.store, s.uploadDir)
+	return importService.TestSource(url, "")
 }
 
 func (s *BookService) ImportFromURL(url, sourceID string) (*models.Book, error) {
-	// TODO: 实现 Web 导入
-	return nil, fmt.Errorf("not implemented")
+	importService := NewWebImportService(s.store, s.uploadDir)
+	return importService.ImportFromURL(url, sourceID)
 }
 
 // CleanupRule methods
