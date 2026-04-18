@@ -117,12 +117,6 @@ type BookInfo struct {
 	Summary string
 }
 
-// ChapterInfo 章节信息
-type ChapterInfo struct {
-	Title string
-	URL   string
-}
-
 // ParseBookInfo 解析书籍信息
 func (p *SourceParser) ParseBookInfo(html string) (*BookInfo, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))

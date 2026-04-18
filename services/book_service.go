@@ -117,6 +117,13 @@ func (s *BookService) GetBookContent(id string) (string, error) {
 		return "", fmt.Errorf("failed to read file: %w", err)
 	}
 
+	// 如果是 TXT，使用 TXTParser 解析
+	if book.FileType == "txt" {
+		txtParser := NewTXTParser()
+		content, _ := txtParser.ParseContent(data)
+		return txtParser.CleanContent(content), nil
+	}
+
 	return string(data), nil
 }
 
@@ -131,6 +138,29 @@ func (s *BookService) GetEPUBContent(id string) (*EPUBBook, error) {
 	}
 
 	return ParseEPUB(book.FilePath)
+}
+
+// GetTXTChapters 获取 TXT 章节列表
+func (s *BookService) GetTXTChapters(id string) ([]ChapterInfo, error) {
+	book, err := s.store.GetBook(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if book.FileType != "txt" {
+		return nil, fmt.Errorf("not a txt file")
+	}
+
+	data, err := os.ReadFile(book.FilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	txtParser := NewTXTParser()
+	content, _ := txtParser.ParseContent(data)
+	cleanContent := txtParser.CleanContent(content)
+
+	return txtParser.SplitChapters(cleanContent), nil
 }
 
 func (s *BookService) GetReadingProgress(bookID string) (*models.ReadingProgress, error) {
