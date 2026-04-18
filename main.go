@@ -60,6 +60,9 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
+	r.GET("/", func(c *gin.Context) {
+		c.File("./index.html")
+	})
 	r.Static("/uploads", uploadDir)
 	r.StaticFile("/reader.html", "./reader.html")
 	r.StaticFile("/index.html", "./index.html")
