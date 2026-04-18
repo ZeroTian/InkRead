@@ -527,6 +527,233 @@ function showSettings() {
 // ========== 书源管理 ==========
 let sources = [];
 
+// ========== 净化规则管理 ==========
+let cleanupRules = [];
+
+async function loadCleanupRules() {
+    try {
+        const response = await apiRequest('/cleanup-rules');
+        cleanupRules = response.data || [];
+        renderRuleList();
+    } catch (error) {
+        console.error('加载净化规则失败:', error);
+        cleanupRules = [];
+        renderRuleList();
+    }
+}
+
+function renderRuleList() {
+    const list = $('#ruleList');
+    if (!list) return;
+
+    if (cleanupRules.length === 0) {
+        list.innerHTML = '<div class="empty-rules">暂无净化规则<br>点击上方按钮添加规则</div>';
+        return;
+    }
+
+    const typeLabels = {
+        replace: '替换',
+        remove: '删除',
+        regex: '正则'
+    };
+
+    list.innerHTML = cleanupRules.map(rule => `
+        <div class="rule-item" data-id="${rule.id}">
+            <div class="rule-item-header">
+                <span class="rule-item-name">${rule.name}</span>
+                <span class="rule-item-type">${typeLabels[rule.ruleType] || rule.ruleType}</span>
+            </div>
+            <div class="rule-item-pattern">${escapeHtml(rule.pattern)}</div>
+            <div class="rule-item-footer">
+                <span class="rule-item-priority">优先级: ${rule.priority || 0}</span>
+                <div class="rule-item-actions">
+                    <label class="toggle-switch small">
+                        <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="toggleRule('${rule.id}', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <button class="btn-small" onclick="editRule('${rule.id}')">编辑</button>
+                    <button class="btn-small" onclick="deleteRule('${rule.id}')">删除</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showRuleForm(rule = null) {
+    const modal = $('#ruleFormModal');
+    const title = $('#ruleFormTitle');
+    const form = $('#ruleForm');
+    const idInput = $('#ruleId');
+    const nameInput = $('#ruleName');
+    const typeInput = $('#ruleType');
+    const patternInput = $('#rulePattern');
+    const replacementInput = $('#ruleReplacement');
+    const priorityInput = $('#rulePriority');
+    const enabledInput = $('#ruleEnabled');
+
+    if (!modal) return;
+
+    if (rule) {
+        title.textContent = '编辑净化规则';
+        idInput.value = rule.id || '';
+        nameInput.value = rule.name || '';
+        typeInput.value = rule.ruleType || 'replace';
+        patternInput.value = rule.pattern || '';
+        replacementInput.value = rule.replacement || '';
+        priorityInput.value = rule.priority || 0;
+        enabledInput.checked = rule.enabled !== false;
+    } else {
+        title.textContent = '添加净化规则';
+        form.reset();
+        idInput.value = '';
+        priorityInput.value = 0;
+        enabledInput.checked = true;
+    }
+
+    modal.classList.add('show');
+}
+
+function hideRuleForm() {
+    const modal = $('#ruleFormModal');
+    if (modal) modal.classList.remove('show');
+}
+
+window.editRule = function(id) {
+    const rule = cleanupRules.find(r => r.id == id || r.id === id);
+    if (rule) {
+        showRuleForm(rule);
+    }
+};
+
+async function saveRule(e) {
+    e.preventDefault();
+
+    const id = $('#ruleId').value;
+    const ruleData = {
+        name: $('#ruleName').value.trim(),
+        ruleType: $('#ruleType').value,
+        pattern: $('#rulePattern').value.trim(),
+        replacement: $('#ruleReplacement').value,
+        priority: parseInt($('#rulePriority').value) || 0,
+        enabled: $('#ruleEnabled').checked
+    };
+
+    if (!ruleData.name || !ruleData.pattern) {
+        showToast('请填写规则名称和匹配模式');
+        return;
+    }
+
+    if (ruleData.ruleType === 'regex') {
+        try {
+            new RegExp(ruleData.pattern);
+        } catch (e) {
+            showToast('正则表达式格式不正确');
+            return;
+        }
+    }
+
+    try {
+        if (id) {
+            await apiRequest(`/cleanup-rules/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(ruleData)
+            });
+            showToast('更新成功');
+        } else {
+            await apiRequest('/cleanup-rules', {
+                method: 'POST',
+                body: JSON.stringify(ruleData)
+            });
+            showToast('添加成功');
+        }
+        hideRuleForm();
+        loadCleanupRules();
+    } catch (error) {
+        console.error('保存规则失败:', error);
+        showToast(error.message || '保存失败');
+    }
+}
+
+window.deleteRule = async function(id) {
+    if (!confirm('确定要删除这个规则吗？')) return;
+
+    try {
+        await apiRequest(`/cleanup-rules/${id}`, { method: 'DELETE' });
+        showToast('删除成功');
+        loadCleanupRules();
+    } catch (error) {
+        console.error('删除规则失败:', error);
+        showToast(error.message || '删除失败');
+    }
+};
+
+window.toggleRule = async function(id, enabled) {
+    try {
+        await apiRequest(`/cleanup-rules/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ enabled: enabled })
+        });
+        showToast(enabled ? '规则已启用' : '规则已禁用');
+        loadCleanupRules();
+    } catch (error) {
+        console.error('切换规则失败:', error);
+        showToast(error.message || '操作失败');
+        loadCleanupRules();
+    }
+};
+
+function initCleanupRules() {
+    const addRuleBtn = $('#addRuleBtn');
+    const closeRuleForm = $('#closeRuleForm');
+    const cancelRuleForm = $('#cancelRuleForm');
+    const ruleForm = $('#ruleForm');
+
+    if (addRuleBtn) {
+        addRuleBtn.addEventListener('click', () => showRuleForm());
+    }
+
+    if (closeRuleForm) {
+        closeRuleForm.addEventListener('click', hideRuleForm);
+    }
+
+    if (cancelRuleForm) {
+        cancelRuleForm.addEventListener('click', hideRuleForm);
+    }
+
+    if (ruleForm) {
+        ruleForm.addEventListener('submit', saveRule);
+    }
+
+    const ruleFormModal = $('#ruleFormModal');
+    if (ruleFormModal) {
+        ruleFormModal.addEventListener('click', (e) => {
+            if (e.target === ruleFormModal) hideRuleForm();
+        });
+    }
+
+    const tabs = $$('.source-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            $('#tabSources').style.display = tabName === 'sources' ? 'block' : 'none';
+            $('#tabRules').style.display = tabName === 'rules' ? 'block' : 'none';
+
+            if (tabName === 'rules') {
+                loadCleanupRules();
+            }
+        });
+    });
+}
+
 async function loadSources() {
     try {
         const response = await apiRequest('/sources');
@@ -814,6 +1041,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 初始化书源管理
     initSourceManagement();
+
+    // 初始化净化规则管理
+    initCleanupRules();
 
     // 根据页面类型初始化
     const isReaderPage = window.location.pathname.includes('reader.html');
