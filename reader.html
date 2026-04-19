@@ -708,7 +708,13 @@
         };
 
         // ===== 初始化 =====
-        loadBooks();
+        const params = new URLSearchParams(window.location.search);
+        const bookId = params.get('id');
+        if (bookId) {
+            openBook(bookId);
+        } else {
+            loadBooks();
+        }
     </script>
 </body>
 </html>
