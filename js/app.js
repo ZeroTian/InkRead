@@ -1028,6 +1028,134 @@ function initSourceManagement() {
     }
 }
 
+// ========== Web 导入 ==========
+let webImportSources = [];
+
+function showWebImportModal() {
+    const modal = $('#webImportModal');
+    const form = $('#webImportForm');
+    const progress = $('#webImportProgress');
+    
+    if (modal) {
+        modal.classList.add('show');
+        form.style.display = 'block';
+        progress.style.display = 'none';
+        loadSourcesForImport();
+    }
+}
+
+function hideWebImportModal() {
+    const modal = $('#webImportModal');
+    const importUrl = $('#importUrl');
+    if (modal) modal.classList.remove('show');
+    if (importUrl) importUrl.value = '';
+}
+
+async function loadSourcesForImport() {
+    try {
+        const response = await apiRequest('/sources');
+        webImportSources = response.data || [];
+        renderSourceSelect();
+    } catch (error) {
+        console.error('加载书源失败:', error);
+        webImportSources = [];
+        renderSourceSelect();
+    }
+}
+
+function renderSourceSelect() {
+    const select = $('#importSource');
+    if (!select) return;
+
+    const options = webImportSources
+        .filter(s => s.enabled)
+        .map(s => `<option value="${s.id}">${s.name}</option>`)
+        .join('');
+
+    select.innerHTML = `<option value="">-- 选择书源 (可选) --</option>${options}`;
+}
+
+async function handleWebImport(e) {
+    e.preventDefault();
+    
+    const url = $('#importUrl').value.trim();
+    const sourceId = $('#importSource').value;
+    
+    if (!url) {
+        showToast('请输入书籍页面 URL');
+        return;
+    }
+
+    const form = $('#webImportForm');
+    const progress = $('#webImportProgress');
+    const status = $('#importStatus');
+    
+    form.style.display = 'none';
+    progress.style.display = 'block';
+    status.textContent = '正在获取页面内容...';
+
+    try {
+        const requestData = { url: url };
+        if (sourceId) {
+            requestData.source_id = sourceId;
+        }
+
+        const response = await apiRequest('/import/url', {
+            method: 'POST',
+            body: JSON.stringify(requestData)
+        });
+
+        status.textContent = '正在解析内容...';
+        
+        if (response.data && response.data.id) {
+            showToast('导入成功');
+            hideWebImportModal();
+            loadBooks();
+        } else {
+            throw new Error('导入结果异常');
+        }
+    } catch (error) {
+        console.error('导入失败:', error);
+        status.textContent = `导入失败: ${error.message}`;
+        showToast(error.message || '导入失败');
+        
+        setTimeout(() => {
+            form.style.display = 'block';
+            progress.style.display = 'none';
+        }, 2000);
+    }
+}
+
+function initWebImport() {
+    const btnWebImport = $('#btnWebImport');
+    const closeBtn = $('#closeWebImport');
+    const cancelBtn = $('#cancelWebImport');
+    const form = $('#webImportForm');
+    const modal = $('#webImportModal');
+
+    if (btnWebImport) {
+        btnWebImport.addEventListener('click', showWebImportModal);
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideWebImportModal);
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideWebImportModal);
+    }
+
+    if (form) {
+        form.addEventListener('submit', handleWebImport);
+    }
+
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) hideWebImportModal();
+        });
+    }
+}
+
 // ========== 初始化 ==========
 document.addEventListener('DOMContentLoaded', () => {
     // 初始化主题
@@ -1044,6 +1172,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 初始化净化规则管理
     initCleanupRules();
+
+    // 初始化 Web 导入
+    initWebImport();
 
     // 根据页面类型初始化
     const isReaderPage = window.location.pathname.includes('reader.html');

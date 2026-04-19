@@ -27,6 +27,47 @@
             </div>
         </div>
 
+        <!-- Web 导入按钮 -->
+        <div class="web-import-section">
+            <button class="btn-web-import" id="btnWebImport">
+                <span class="web-import-icon">🌐</span>
+                <span class="web-import-text">从网址导入</span>
+            </button>
+        </div>
+
+        <!-- Web 导入模态框 -->
+        <div class="web-import-modal" id="webImportModal">
+            <div class="web-import-content">
+                <div class="web-import-header">
+                    <h3>🌐 从网址导入</h3>
+                    <button class="btn-close" id="closeWebImport">×</button>
+                </div>
+                <form class="web-import-form" id="webImportForm">
+                    <div class="form-group">
+                        <label for="importUrl">书籍页面 URL *</label>
+                        <input type="url" id="importUrl" required placeholder="https://example.com/book/123">
+                    </div>
+                    <div class="form-group">
+                        <label for="importSource">选择书源</label>
+                        <select id="importSource">
+                            <option value="">-- 选择书源 (可选) --</option>
+                        </select>
+                        <small class="form-hint">如果不选择书源，将自动从页面提取内容</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" id="cancelWebImport">取消</button>
+                        <button type="submit" class="btn-primary">导入</button>
+                    </div>
+                </form>
+                <div class="web-import-progress" id="webImportProgress" style="display: none;">
+                    <div class="import-progress-bar">
+                        <div class="import-progress-fill" id="importProgressFill"></div>
+                    </div>
+                    <p class="import-status" id="importStatus">正在导入...</p>
+                </div>
+            </div>
+        </div>
+
         <nav class="bottom-nav">
             <button class="nav-btn active" data-view="shelf">
                 <span class="nav-icon">📚</span>
