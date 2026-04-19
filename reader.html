@@ -556,10 +556,7 @@
         }
 
         function goToShelf() {
-            state.currentBook = null;
-            readerPage.classList.remove('active');
-            shelfPage.style.display = 'block';
-            loadBooks(); // 刷新列表以显示最新进度
+            window.location.href = 'index.html';
         }
 
         // ===== 进度管理 =====
